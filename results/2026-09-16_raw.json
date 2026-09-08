@@ -1,0 +1,134 @@
+{
+  "travel_date": "2026-09-16",
+  "recommendations": [
+    {
+      "recommended_city": "제주시",
+      "weather": "9월 중순은 늦여름에서 초가을로 넘어가는 시기로, 낮에는 따뜻하고 습할 수 있으며 아침저녁은 비교적 선선합니다. 태풍이나 소나기 가능성이 있어 날씨 확인이 필요합니다.",
+      "events": [
+        "한라산·오름 가을 트레킹",
+        "제주 해안도로 드라이브와 일몰 감상",
+        "제주 감귤 수확 체험 사전 확인"
+      ],
+      "reason": "9월 중순의 제주도는 한여름보다 더위가 누그러져 오름과 해안 산책을 즐기기 좋습니다. 성수기가 지나 비교적 여유롭게 자연경관과 지역 먹거리를 경험할 수 있습니다."
+    },
+    {
+      "recommended_city": "강릉시",
+      "weather": "낮 기온은 대체로 따뜻하고 아침저녁에는 선선합니다. 동해안 특유의 맑은 날이 많지만 간헐적인 비와 높은 파도가 나타날 수 있습니다.",
+      "events": [
+        "경포호·안목해변 산책",
+        "오죽헌과 선교장 등 전통문화 탐방",
+        "동해안 가을 일출 감상"
+      ],
+      "reason": "강릉은 바다와 호수, 전통문화 관광을 한 번에 즐길 수 있어 짧은 여행에 적합합니다. 9월 중순에는 해수욕장 중심의 여름 분위기보다 한층 차분한 해변 여행을 하기 좋습니다."
+    },
+    {
+      "recommended_city": "순천시",
+      "weather": "9월 중순에는 낮에는 따뜻하고 습도가 남아 있을 수 있지만, 저녁에는 선선해집니다. 습지와 정원 방문 시 햇볕이 강할 수 있어 모자와 물을 준비하는 것이 좋습니다.",
+      "events": [
+        "순천만습지 갈대와 갯벌 생태 관찰",
+        "순천만국가정원 산책",
+        "가을 국화·초화 전시 일정 확인"
+      ],
+      "reason": "순천만은 가을로 접어드는 시기에 갈대와 넓은 습지 풍경을 감상하기 좋은 곳입니다. 국가정원과 낙안읍성까지 연계하면 자연, 정원, 역사 관광을 균형 있게 즐길 수 있습니다."
+    }
+  ],
+  "restaurants_by_city": {
+    "제주시": [
+      {
+        "place_name": "은희네해장국 본점",
+        "address": "제주특별자치도 제주시 고마로13길 8",
+        "category": "음식점 > 한식 > 해장국",
+        "url": "http://place.map.kakao.com/21499653"
+      },
+      {
+        "place_name": "오롯",
+        "address": "제주특별자치도 제주시 신설로11길 2-10",
+        "category": "음식점 > 한식",
+        "url": "http://place.map.kakao.com/1735521703"
+      },
+      {
+        "place_name": "용담밭담",
+        "address": "제주특별자치도 제주시 서천길 16",
+        "category": "음식점 > 한식",
+        "url": "http://place.map.kakao.com/727076726"
+      },
+      {
+        "place_name": "미스칠",
+        "address": "제주특별자치도 제주시 일주서로 7831",
+        "category": "음식점 > 한식",
+        "url": "http://place.map.kakao.com/182376522"
+      },
+      {
+        "place_name": "산지해장국",
+        "address": "제주특별자치도 제주시 임항로 34",
+        "category": "음식점 > 한식 > 해장국",
+        "url": "http://place.map.kakao.com/25430346"
+      }
+    ],
+    "강릉시": [
+      {
+        "place_name": "강릉부성불고기찜닭 교동택지 본점",
+        "address": "강원특별자치도 강릉시 율곡초교길39번길 16",
+        "category": "음식점 > 한식 > 육류,고기 > 닭요리",
+        "url": "http://place.map.kakao.com/27586424"
+      },
+      {
+        "place_name": "풍호맛뜨락 강릉본점",
+        "address": "강원특별자치도 강릉시 임영로 10",
+        "category": "음식점 > 한식",
+        "url": "http://place.map.kakao.com/125345615"
+      },
+      {
+        "place_name": "참순찰떡방",
+        "address": "강원특별자치도 강릉시 남구길5번길 18-1",
+        "category": "음식점 > 간식 > 떡,한과",
+        "url": "http://place.map.kakao.com/16826307"
+      },
+      {
+        "place_name": "택지골수제생갈비",
+        "address": "강원특별자치도 강릉시 하슬라로232번길 1",
+        "category": "음식점 > 한식 > 육류,고기 > 갈비",
+        "url": "http://place.map.kakao.com/10906027"
+      },
+      {
+        "place_name": "만동제과 강릉점",
+        "address": "강원특별자치도 강릉시 금성로 6",
+        "category": "음식점 > 간식 > 제과,베이커리",
+        "url": "http://place.map.kakao.com/1895412800"
+      }
+    ],
+    "순천시": [
+      {
+        "place_name": "신화정",
+        "address": "전남광주통합특별시 순천시 구암길 26",
+        "category": "음식점 > 한식 > 한정식",
+        "url": "http://place.map.kakao.com/19157132"
+      },
+      {
+        "place_name": "나눌터",
+        "address": "전남광주통합특별시 순천시 팔마1길 4",
+        "category": "음식점 > 한식",
+        "url": "http://place.map.kakao.com/14504521"
+      },
+      {
+        "place_name": "벽오동",
+        "address": "전남광주통합특별시 순천시 상사호길 73",
+        "category": "음식점 > 한식 > 한정식",
+        "url": "http://place.map.kakao.com/19387014"
+      },
+      {
+        "place_name": "참조은시골집",
+        "address": "전남광주통합특별시 순천시 해룡면 해룡로 579",
+        "category": "음식점 > 한식 > 한정식",
+        "url": "http://place.map.kakao.com/10768688"
+      },
+      {
+        "place_name": "풍미통닭",
+        "address": "전남광주통합특별시 순천시 팔마1길 2",
+        "category": "음식점 > 치킨",
+        "url": "http://place.map.kakao.com/21513162"
+      }
+    ]
+  },
+  "errors": []
+}
