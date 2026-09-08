@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
 from typing import TypedDict
@@ -42,12 +43,17 @@ class TravelRecommendations(BaseModel):
 
 
 class Restaurant(TypedDict):
-    """Kakao Local API에서 사용할 맛집 정보입니다."""
+    """장소 검색 API에서 공통으로 사용할 맛집 정보입니다.
+
+    x와 y는 장소의 경도/위도 좌표이며 원본 JSON에 저장합니다.
+    """
 
     place_name: str
     address: str
     category: str
     url: str
+    x: float
+    y: float
 
 
 def load_api_keys() -> tuple[str, str]:
@@ -118,6 +124,45 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def normalize_city_name(city: str) -> str:
+    """LLM이 반환한 긴 행정구역명을 시/군 단위 지역명으로 정규화합니다."""
+
+    city = city.strip()
+
+    administrative_prefixes = [
+        "서울특별시",
+        "부산광역시",
+        "대구광역시",
+        "인천광역시",
+        "광주광역시",
+        "대전광역시",
+        "울산광역시",
+        "세종특별자치시",
+        "경기도",
+        "강원특별자치도",
+        "충청북도",
+        "충청남도",
+        "전북특별자치도",
+        "전라남도",
+        "경상북도",
+        "경상남도",
+        "제주특별자치도",
+    ]
+
+    for prefix in administrative_prefixes:
+        if city.startswith(prefix):
+            city = city[len(prefix):].strip()
+            break
+
+    parts = city.split()
+
+    for part in reversed(parts):
+        if part.endswith(("시", "군")):
+            return part
+
+    return city
+
+
 def get_travel_recommendation(
     client: OpenAI,
     travel_date: str,
@@ -125,7 +170,7 @@ def get_travel_recommendation(
     """OpenAI API를 호출하여 여행 날짜에 맞는 국내 여행지를 추천받습니다.
 
     LLM의 구조화된 결과를 읽지 못하거나 JSON 파싱에 실패한 경우
-    1회만 재시도합니다.
+    재시도용 보정 프롬프트를 적용하여 1회만 다시 요청합니다.
 
     Raises:
         AuthenticationError: OpenAI API 키가 유효하지 않은 경우
@@ -134,25 +179,43 @@ def get_travel_recommendation(
         ValueError: 재시도 후에도 LLM의 구조화된 응답을 읽을 수 없는 경우
     """
 
+    base_system_prompt = (
+        "당신은 대한민국 국내 여행 전문가입니다. "
+        "사용자가 입력한 여행 날짜를 기준으로 "
+        "서로 다른 국내 여행지 3곳을 추천하세요. "
+        "recommended_city에는 대한민국의 시 또는 군 단위 "
+        "지역명을 작성하세요. "
+        "weather에는 해당 시기의 일반적인 날씨 특징을 "
+        "간단히 작성하세요. "
+        "events에는 해당 날짜 전후에 고려할 만한 행사나 "
+        "계절 활동을 1개 이상 3개 이하로 작성하세요. "
+        "reason에는 추천 이유를 한국어 2~4문장으로 작성하세요."
+    )
+
+    retry_correction_prompt = (
+        " 이전 응답을 구조화된 형식으로 처리하지 못했습니다. "
+        "이번에는 설명 문장이나 Markdown 코드블록을 추가하지 말고 "
+        "TravelRecommendations 구조에 맞는 결과만 반환하세요. "
+        "recommendations는 정확히 3개의 항목을 포함해야 하며, "
+        "각 항목에는 recommended_city, weather, events, reason "
+        "필드가 반드시 포함되어야 합니다. "
+        "recommended_city, weather, reason은 문자열이어야 하고 "
+        "events는 문자열 배열이어야 합니다."
+    )
+
     for attempt in range(2):
+        system_prompt = base_system_prompt
+
+        if attempt == 1:
+            system_prompt += retry_correction_prompt
+
         try:
             response = client.responses.parse(
                 model="gpt-5.6-luna",
                 input=[
                     {
                         "role": "system",
-                        "content": (
-                            "당신은 대한민국 국내 여행 전문가입니다. "
-                            "사용자가 입력한 여행 날짜를 기준으로 "
-                            "서로 다른 국내 여행지 3곳을 추천하세요. "
-                            "recommended_city에는 대한민국의 시 또는 군 단위 "
-                            "지역명을 작성하세요. "
-                            "weather에는 해당 시기의 일반적인 날씨 특징을 "
-                            "간단히 작성하세요. "
-                            "events에는 해당 날짜 전후에 고려할 만한 행사나 "
-                            "계절 활동을 1개 이상 3개 이하로 작성하세요. "
-                            "reason에는 추천 이유를 한국어 2~4문장으로 작성하세요."
-                        ),
+                        "content": system_prompt,
                     },
                     {
                         "role": "user",
@@ -166,13 +229,13 @@ def get_travel_recommendation(
             if attempt == 0:
                 print(
                     "LLM JSON 파싱 실패: "
-                    "1회 재시도합니다."
+                    "보정 프롬프트를 적용하여 1회 재시도합니다."
                 )
                 continue
 
             raise ValueError(
                 "LLM의 여행지 추천 결과를 "
-                "재시도 후에도 파싱하지 못했습니다."
+                "보정 프롬프트 적용 후에도 파싱하지 못했습니다."
             ) from error
 
         if response.output_parsed is not None:
@@ -181,74 +244,95 @@ def get_travel_recommendation(
         if attempt == 0:
             print(
                 "LLM 결과 처리 실패: "
-                "1회 재시도합니다."
+                "보정 프롬프트를 적용하여 1회 재시도합니다."
             )
             continue
 
     raise ValueError(
         "LLM의 여행지 추천 결과를 "
-        "재시도 후에도 읽을 수 없습니다."
+        "보정 프롬프트 적용 후에도 읽을 수 없습니다."
     )
 
 
-def search_restaurants(
-    kakao_rest_api_key: str,
-    city: str,
-) -> list[Restaurant]:
-    """Kakao Local API를 사용하여 추천 지역의 맛집을 검색합니다.
+class PlaceProvider(ABC):
+    """장소 검색 API 제공자가 따라야 하는 공통 인터페이스입니다."""
 
-    Raises:
-        requests.HTTPError: API 응답 상태 코드가 4xx 또는 5xx인 경우
-        requests.ConnectionError: Kakao 서버 연결에 실패한 경우
-        requests.Timeout: 요청 시간이 초과된 경우
-        ValueError: Kakao API 응답 구조가 올바르지 않은 경우
-    """
+    @abstractmethod
+    def search_restaurants(
+        self,
+        city: str,
+    ) -> list[Restaurant]:
+        """추천 지역명을 이용하여 맛집 목록을 반환합니다."""
 
-    url = "https://dapi.kakao.com/v2/local/search/keyword.json"
 
-    headers = {
-        "Authorization": f"KakaoAK {kakao_rest_api_key}"
-    }
+class KakaoPlaceProvider(PlaceProvider):
+    """Kakao Local API를 사용하는 장소 검색 Provider입니다."""
 
-    params = {
-        "query": f"{city} 맛집",
-        "category_group_code": "FD6",
-        "size": 5,
-    }
+    def __init__(self, api_key: str) -> None:
+        self.api_key = api_key
 
-    response = requests.get(
-        url,
-        headers=headers,
-        params=params,
-        timeout=10,
-    )
+    def search_restaurants(
+        self,
+        city: str,
+    ) -> list[Restaurant]:
+        """Kakao Local API를 사용하여 추천 지역의 맛집을 검색합니다.
 
-    response.raise_for_status()
+        Raises:
+            requests.HTTPError: API 응답 상태 코드가 4xx 또는 5xx인 경우
+            requests.ConnectionError: Kakao 서버 연결에 실패한 경우
+            requests.Timeout: 요청 시간이 초과된 경우
+            ValueError: Kakao API 응답 구조가 올바르지 않은 경우
+        """
 
-data = response.json()
+        url = "https://dapi.kakao.com/v2/local/search/keyword.json"
 
-if "documents" not in data or not isinstance(data["documents"], list):
-    raise ValueError("Kakao API 응답 구조가 올바르지 않습니다.")
-
-restaurants: list[Restaurant] = []
-
-for place in data["documents"]:
-    restaurants.append(
-        {
-            "place_name": place.get("place_name", ""),
-            "address": (
-                place.get("road_address_name")
-                or place.get("address_name", "")
-            ),
-            "category": place.get("category_name", ""),
-            "url": place.get("place_url", ""),
-            "x": float(place.get("x", 0) or 0),
-            "y": float(place.get("y", 0) or 0),
+        headers = {
+            "Authorization": f"KakaoAK {self.api_key}"
         }
-    )
 
-return restaurants
+        params = {
+            "query": f"{city} 맛집",
+            "category_group_code": "FD6",
+            "size": 5,
+        }
 
+        response = requests.get(
+            url,
+            headers=headers,
+            params=params,
+            timeout=10,
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        if (
+            "documents" not in data
+            or not isinstance(data["documents"], list)
+        ):
+            raise ValueError(
+                "Kakao API 응답 구조가 올바르지 않습니다."
+            )
+
+        restaurants: list[Restaurant] = []
+
+        for place in data["documents"]:
+            restaurants.append(
+                {
+                    "place_name": place.get("place_name", ""),
+                    "address": (
+                        place.get("road_address_name")
+                        or place.get("address_name", "")
+                    ),
+                    "category": place.get("category_name", ""),
+                    "url": place.get("place_url", ""),
+                    "x": float(place.get("x", 0) or 0),
+                    "y": float(place.get("y", 0) or 0),
+                }
+            )
+
+        return restaurants
 
 def generate_travel_guide(
     client: OpenAI,
@@ -348,6 +432,8 @@ def load_cached_results(
     dict[str, list[Restaurant]],
     list[str],
     str,
+    Path,
+    Path,
 ] | None:
     """같은 날짜의 기존 결과 파일이 있으면 캐시 데이터를 불러옵니다."""
 
@@ -414,6 +500,8 @@ def load_cached_results(
         restaurants_by_city,
         errors,
         guide,
+        raw_json_path,
+        guide_path,
     )
 
 
@@ -513,17 +601,9 @@ def main() -> None:
             restaurants_by_city,
             errors,
             guide,
+            raw_json_path,
+            guide_path,
         ) = cached_result
-
-        raw_json_path = (
-            Path("results")
-            / f"{travel_date}_raw.json"
-        )
-
-        guide_path = (
-            Path("results")
-            / f"{travel_date}_travel_guide.md"
-        )
 
         print("\n[캐시 사용]")
         print(
@@ -543,6 +623,10 @@ def main() -> None:
     errors: list[str] = []
 
     client = OpenAI(api_key=openai_api_key)
+
+    place_provider: PlaceProvider = KakaoPlaceProvider(
+        kakao_rest_api_key
+    )
 
     try:
         recommendations = get_travel_recommendation(
@@ -578,9 +662,12 @@ def main() -> None:
         print(f"추천 이유: {recommendation.reason}")
 
         try:
-            restaurants = search_restaurants(
-                kakao_rest_api_key,
-                recommendation.recommended_city,
+            normalized_city = normalize_city_name(
+                recommendation.recommended_city
+            )
+
+            restaurants = place_provider.search_restaurants(
+                normalized_city
             )
 
         except requests.RequestException as error:
@@ -588,7 +675,7 @@ def main() -> None:
                 f"{recommendation.recommended_city} "
                 f"Kakao 맛집 검색 오류: {error}"
             )
-            print(f"\n맛집 검색 오류: {error}")
+            print(f"\n{error_message}")
             errors.append(error_message)
             restaurants = []
 
@@ -597,7 +684,7 @@ def main() -> None:
                 f"{recommendation.recommended_city} "
                 f"Kakao 맛집 검색 오류: {error}"
             )
-            print(f"\n맛집 검색 오류: {error}")
+            print(f"\n{error_message}")
             errors.append(error_message)
             restaurants = []
 
