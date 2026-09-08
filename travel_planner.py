@@ -225,27 +225,29 @@ def search_restaurants(
 
     response.raise_for_status()
 
-    data = response.json()
+data = response.json()
 
-    if "documents" not in data or not isinstance(data["documents"], list):
-        raise ValueError("Kakao API 응답 구조가 올바르지 않습니다.")
+if "documents" not in data or not isinstance(data["documents"], list):
+    raise ValueError("Kakao API 응답 구조가 올바르지 않습니다.")
 
-    restaurants: list[Restaurant] = []
+restaurants: list[Restaurant] = []
 
-    for place in data["documents"]:
-        restaurants.append(
-            {
-                "place_name": place.get("place_name", ""),
-                "address": (
-                    place.get("road_address_name")
-                    or place.get("address_name", "")
-                ),
-                "category": place.get("category_name", ""),
-                "url": place.get("place_url", ""),
-            }
-        )
+for place in data["documents"]:
+    restaurants.append(
+        {
+            "place_name": place.get("place_name", ""),
+            "address": (
+                place.get("road_address_name")
+                or place.get("address_name", "")
+            ),
+            "category": place.get("category_name", ""),
+            "url": place.get("place_url", ""),
+            "x": float(place.get("x", 0) or 0),
+            "y": float(place.get("y", 0) or 0),
+        }
+    )
 
-    return restaurants
+return restaurants
 
 
 def generate_travel_guide(
